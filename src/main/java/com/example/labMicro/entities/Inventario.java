@@ -3,26 +3,20 @@ package com.example.labMicro.entities;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
-
 @Entity
-@Table(name = "pedidos")
+@Table(name = "inventario")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Pedido {
+public class Inventario {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String cliente;
+    private String producto;
 
-    private double total;
-
-    private String estado;
-
-    private LocalDateTime fecha;
+    private int stock;
 
 }
