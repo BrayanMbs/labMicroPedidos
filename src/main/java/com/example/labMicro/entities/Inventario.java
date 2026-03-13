@@ -19,4 +19,6 @@ public class Inventario {
 
     private int stock;
 
+    private double precio;
+
 }
