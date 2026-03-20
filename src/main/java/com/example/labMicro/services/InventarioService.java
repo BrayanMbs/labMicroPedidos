@@ -7,13 +7,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-// 🔥 LOGS
+// 🔥 Librerías para el Log
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Service
 public class InventarioService {
 
+    // Definimos el logger para rastrear qué pasa en el microservicio
     private static final Logger logger = LoggerFactory.getLogger(InventarioService.class);
 
     private final InventarioRepository inventarioRepository;
@@ -22,11 +23,14 @@ public class InventarioService {
         this.inventarioRepository = inventarioRepository;
     }
 
-    // 📌 AGREGAR PRODUCTO
+    /**
+     * 📌 AGREGAR PRODUCTO
+     * Guarda un nuevo artículo y registra cuánto stock inicial tiene.
+     */
     public Inventario agregarProducto(Inventario inventario){
         Inventario guardado = inventarioRepository.save(inventario);
 
-        logger.info("Producto agregado | Nombre: {} | Stock inicial: {} | Precio: {}",
+        logger.info("📦 PRODUCTO CREADO | Nombre: {} | Stock inicial: {} | Precio: Q{}",
                 guardado.getProducto(),
                 guardado.getStock(),
                 guardado.getPrecio());
@@ -34,69 +38,78 @@ public class InventarioService {
         return guardado;
     }
 
-    // 📌 LISTAR
+    /**
+     * 📌 LISTAR INVENTARIO
+     * Muestra todos los productos disponibles.
+     */
     public List<Inventario> listar(){
-        logger.info("Listado de inventario consultado");
+        logger.info("🔍 CONSULTA: Se ha solicitado el listado completo de productos.");
         return inventarioRepository.findAll();
     }
 
-    // 🛒 RESERVAR STOCK (CON CANTIDAD Y ROLLBACK)
+    /**
+     * 🛒 RESERVAR STOCK (VENTA)
+     * Resta la cantidad solicitada del inventario.
+     * @Transactional asegura que si algo falla, no se guarde nada a medias.
+     */
     @Transactional
     public Inventario reservarStock(String producto, int cantidad){
 
+        // 1. Buscamos si el producto existe
         Inventario inventario = inventarioRepository
                 .findByProducto(producto)
                 .orElseThrow(() -> {
-                    logger.error("Producto no encontrado: {}", producto);
+                    logger.error("❌ ERROR: El producto '{}' no existe en el catálogo.", producto);
                     return new RuntimeException("Producto no encontrado");
                 });
 
-        int stockAntes = inventario.getStock();
+        int stockActual = inventario.getStock();
 
-        // 🚨 VALIDACIÓN
-        if(stockAntes < cantidad){
-            logger.warn("Stock insuficiente | Producto: {} | Disponible: {} | Solicitado: {}",
-                    producto, stockAntes, cantidad);
+        // 🚨 VALIDACIÓN DE ORO: No permitimos vender más de lo que hay
+        if(stockActual < cantidad){
+            logger.warn("🚫 VENTA RECHAZADA: '{}' insuficiente. Solicitado: {} | Disponible: {}",
+                    producto, cantidad, stockActual);
 
-            throw new RuntimeException("Stock insuficiente");
+            // Al lanzar este error, Spring hace "Rollback" automático a la DB
+            throw new RuntimeException("No hay suficiente stock para completar la reserva");
         }
 
-        // 🔻 DESCUENTO
-        inventario.setStock(stockAntes - cantidad);
+        // 🔻 Solo si hay stock, calculamos y restamos
+        int nuevoStock = stockActual - cantidad;
+        inventario.setStock(nuevoStock);
 
+        // Guardamos los cambios
         Inventario actualizado = inventarioRepository.save(inventario);
 
-        logger.info("Compra realizada | Producto: {} | Cantidad: {} | Stock antes: {} | Stock actual: {}",
-                producto,
-                cantidad,
-                stockAntes,
-                actualizado.getStock());
+        logger.info("✅ VENTA EXITOSA | Producto: {} | Cantidad Vendida: {} | Stock Antes: {} | Stock Ahora: {}",
+                producto, cantidad, stockActual, actualizado.getStock());
 
         return actualizado;
     }
 
-    // 🔁 LIBERAR STOCK
+    /**
+     * 🔁 LIBERAR STOCK (DEVOLUCIÓN)
+     * Suma stock al inventario (ej. cuando se cancela un pedido).
+     */
     @Transactional
     public Inventario liberarStock(String producto, int cantidad){
 
         Inventario inventario = inventarioRepository
                 .findByProducto(producto)
                 .orElseThrow(() -> {
-                    logger.error("Producto no encontrado: {}", producto);
+                    logger.error("❌ ERROR: No se puede liberar stock de '{}' porque no existe.", producto);
                     return new RuntimeException("Producto no encontrado");
                 });
 
         int stockAntes = inventario.getStock();
 
-        inventario.setStock(stockAntes);
+        // 🆙 Aumentamos el inventario
+        inventario.setStock(stockAntes + cantidad);
 
         Inventario actualizado = inventarioRepository.save(inventario);
 
-        logger.info("Stock liberado | Producto: {} | Cantidad: {} | Stock antes: {} | Stock actual: {}",
-                producto,
-                cantidad,
-                stockAntes,
-                actualizado.getStock());
+        logger.info("🔄 STOCK REPUESTO | Producto: {} | Cantidad Devuelta: {} | Stock Antes: {} | Stock Ahora: {}",
+                producto, cantidad, stockAntes, actualizado.getStock());
 
         return actualizado;
     }
