@@ -88,7 +88,7 @@ public class InventarioService {
 
         int stockAntes = inventario.getStock();
 
-        inventario.setStock(stockAntes + cantidad);
+        inventario.setStock(stockAntes);
 
         Inventario actualizado = inventarioRepository.save(inventario);
 
