@@ -36,4 +36,10 @@ public class InventarioController {
         return inventarioService.liberarStock(producto);
     }
 
+    @ExceptionHandler(RuntimeException.class)
+    public org.springframework.http.ResponseEntity<java.util.Map<String, String>> handleException(RuntimeException e) {
+        return org.springframework.http.ResponseEntity
+            .badRequest()
+            .body(java.util.Map.of("error", e.getMessage()));
+    }
 }

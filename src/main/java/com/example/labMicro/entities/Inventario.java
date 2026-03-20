@@ -13,7 +13,7 @@ public class Inventario {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long idProduct;
 
     private String producto;
 
