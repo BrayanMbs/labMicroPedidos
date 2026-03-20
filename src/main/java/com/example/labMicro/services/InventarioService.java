@@ -104,7 +104,7 @@ public class InventarioService {
         int stockAntes = inventario.getStock();
 
         // 🆙 Aumentamos el inventario
-        inventario.setStock(stockAntes + cantidad);
+        inventario.setStock(stockAntes);
 
         Inventario actualizado = inventarioRepository.save(inventario);
 
