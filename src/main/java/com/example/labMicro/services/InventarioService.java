@@ -3,10 +3,11 @@ package com.example.labMicro.services;
 import com.example.labMicro.entities.Inventario;
 import com.example.labMicro.repositories.InventarioRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-
+// 🔥 LOGS
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,7 +22,7 @@ public class InventarioService {
         this.inventarioRepository = inventarioRepository;
     }
 
-
+    // 📌 AGREGAR PRODUCTO
     public Inventario agregarProducto(Inventario inventario){
         Inventario guardado = inventarioRepository.save(inventario);
 
@@ -33,14 +34,15 @@ public class InventarioService {
         return guardado;
     }
 
-
+    // 📌 LISTAR
     public List<Inventario> listar(){
         logger.info("Listado de inventario consultado");
         return inventarioRepository.findAll();
     }
 
-
-    public Inventario reservarStock(String producto){
+    // 🛒 RESERVAR STOCK (CON CANTIDAD Y ROLLBACK)
+    @Transactional
+    public Inventario reservarStock(String producto, int cantidad){
 
         Inventario inventario = inventarioRepository
                 .findByProducto(producto)
@@ -51,25 +53,31 @@ public class InventarioService {
 
         int stockAntes = inventario.getStock();
 
-        if(stockAntes <= 0){
-            logger.warn("Intento de compra sin stock | Producto: {}", producto);
+        // 🚨 VALIDACIÓN
+        if(stockAntes < cantidad){
+            logger.warn("Stock insuficiente | Producto: {} | Disponible: {} | Solicitado: {}",
+                    producto, stockAntes, cantidad);
+
             throw new RuntimeException("Stock insuficiente");
         }
 
-        inventario.setStock(stockAntes - 1);
+        // 🔻 DESCUENTO
+        inventario.setStock(stockAntes - cantidad);
 
         Inventario actualizado = inventarioRepository.save(inventario);
 
-        logger.info("Compra realizada | Producto: {} | Stock antes: {} | Stock actual: {}",
+        logger.info("Compra realizada | Producto: {} | Cantidad: {} | Stock antes: {} | Stock actual: {}",
                 producto,
+                cantidad,
                 stockAntes,
                 actualizado.getStock());
 
         return actualizado;
     }
 
-
-    public Inventario liberarStock(String producto){
+    // 🔁 LIBERAR STOCK
+    @Transactional
+    public Inventario liberarStock(String producto, int cantidad){
 
         Inventario inventario = inventarioRepository
                 .findByProducto(producto)
@@ -80,16 +88,16 @@ public class InventarioService {
 
         int stockAntes = inventario.getStock();
 
-        inventario.setStock(stockAntes + 1);
+        inventario.setStock(stockAntes + cantidad);
 
         Inventario actualizado = inventarioRepository.save(inventario);
 
-        logger.info("Stock liberado | Producto: {} | Stock antes: {} | Stock actual: {}",
+        logger.info("Stock liberado | Producto: {} | Cantidad: {} | Stock antes: {} | Stock actual: {}",
                 producto,
+                cantidad,
                 stockAntes,
                 actualizado.getStock());
 
         return actualizado;
     }
-
 }

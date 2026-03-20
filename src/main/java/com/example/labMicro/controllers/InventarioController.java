@@ -35,21 +35,27 @@ public class InventarioController {
     }
 
     @PostMapping("/reservar")
-    public Inventario reservar(@RequestParam String producto){
-        logger.info("Request: Reservar producto -> {}", producto);
-        return inventarioService.reservarStock(producto);
+    public Inventario reservar(
+            @RequestParam String producto,
+            @RequestParam int cantidad){
+
+        logger.info("Request: Reservar producto -> {} | Cantidad: {}", producto, cantidad);
+        return inventarioService.reservarStock(producto, cantidad);
     }
 
     @PostMapping("/liberar")
-    public Inventario liberar(@RequestParam String producto){
-        logger.info("Request: Liberar producto -> {}", producto);
-        return inventarioService.liberarStock(producto);
+    public Inventario liberar(
+            @RequestParam String producto,
+            @RequestParam int cantidad){
+
+        logger.info("Request: Liberar producto -> {} | Cantidad: {}", producto, cantidad);
+        return inventarioService.liberarStock(producto, cantidad);
     }
 
     @ExceptionHandler(RuntimeException.class)
     public org.springframework.http.ResponseEntity<java.util.Map<String, String>> handleException(RuntimeException e) {
 
-        logger.error("Error capturado: {}", e.getMessage());
+        logger.error("Error: {}", e.getMessage());
 
         return org.springframework.http.ResponseEntity
                 .badRequest()
